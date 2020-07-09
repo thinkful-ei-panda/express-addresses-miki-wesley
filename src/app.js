@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const {NODE_ENV} = require('./config');
 const addresses = require('./addresses');
+const { v4: uuid } = require('uuid');
 
 const app = express();
 
@@ -16,6 +17,21 @@ app.use(morgan(morgOption));
 app.use(cors());
 app.use(helmet());
 
+const validateBearerToken = (req, res, next) => {
+  const bearerToken = req.get('Authorization');
+  const apiToken = process.env.API_TOKEN;
+
+  if(!bearerToken) {
+    return res.status(401).send('Missing bearer token')
+  };
+
+  if(bearerToken.split(' ')[1] === apiToken) {
+      next()
+  } else {
+      return res.status(401).send('Unauthorized user')
+  };
+};
+
 app.get('/', (req,res) => {
   res.status(200).send('Hello Boilerplate');
 });
@@ -24,7 +40,7 @@ app.get('/address', (req,res) => {
   res.json(addresses);
 });
 
-app.post('/address', express.json(), (req,res) => {
+app.post('/address', validateBearerToken, express.json(), (req,res) => {
   const {
     firstName,
     lastName,
@@ -32,10 +48,10 @@ app.post('/address', express.json(), (req,res) => {
     address2,
     city,
     state,
-    zip} = req.body;
+    zip } = req.body;
 
   let response={
-    id:100,
+    id: uuid(),
     firstName,
     lastName,
     address1,
@@ -52,15 +68,19 @@ app.post('/address', express.json(), (req,res) => {
   if(!lastName){
     return res.status(400).send('Address must include lastName');
   }
+
   if(!address1){
     return res.status(400).send('Address must include address1');
   }
+
   if(!city){
     return res.status(400).send('Address must include city');
   }
+
   if(!state){
     return res.status(400).send('Address must include state');
   }
+
   if(!zip){
     return res.status(400).send('Address must include zip');
   }
@@ -73,8 +93,23 @@ app.post('/address', express.json(), (req,res) => {
     return res.status(400).send('Please enter a valid 5 digit zip code');
   }
 
+  addresses.push(response);
+
   res.status(201).send(response);
 });
+
+app.delete('/address/:id', validateBearerToken, (req, res) => {
+  const { id } = req.params;
+  const index = addresses.findIndex(address => address.id === id);
+
+  if(index === -1) {
+    return res.status(400).send('ID not found')
+  }
+
+  addresses.splice(index, 1);
+
+  res.status(204).end();
+})
 
 app.use(function errorHandler(error,req,res,next){ //eslint-disable-line
   let response;
