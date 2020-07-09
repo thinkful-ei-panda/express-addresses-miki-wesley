@@ -22,14 +22,14 @@ const validateBearerToken = (req, res, next) => {
   const apiToken = process.env.API_TOKEN;
 
   if(!bearerToken) {
-    return res.status(401).send('Missing bearer token')
-  };
+    return res.status(401).send('Missing bearer token');
+  }
 
   if(bearerToken.split(' ')[1] === apiToken) {
-      next()
+    next();
   } else {
-      return res.status(401).send('Unauthorized user')
-  };
+    return res.status(401).send('Unauthorized user');
+  }
 };
 
 app.get('/', (req,res) => {
@@ -103,20 +103,20 @@ app.delete('/address/:id', validateBearerToken, (req, res) => {
   const index = addresses.findIndex(address => address.id === id);
 
   if(index === -1) {
-    return res.status(400).send('ID not found')
+    return res.status(400).send('ID not found');
   }
 
   addresses.splice(index, 1);
 
   res.status(204).end();
-})
+});
 
 app.use(function errorHandler(error,req,res,next){ //eslint-disable-line
   let response;
   if(NODE_ENV === 'production') {
     response = {error: {message: 'server error'}};
   }else{
-    console.log(error);
+    console.log(error); //eslint-disable-line
     response = {message: error.message, error};
   }
   res.status(400).json(response);
